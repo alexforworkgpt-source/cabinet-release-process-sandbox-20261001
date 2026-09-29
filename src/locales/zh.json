@@ -477,6 +477,8 @@
     "total": "总计",
     "discount": "优惠",
     "purchase": "购买",
+    "pay": "支付",
+    "fundingNotice": "余额还差 {{amount}}。充值后套餐将自动开通。",
     "nextWithPrice": "下一步 · {{amount}}",
     "payAmount": "支付 {{amount}}",
     "step": "第 {{current}} 步，共 {{total}} 步",

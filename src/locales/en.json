@@ -535,6 +535,8 @@
     "total": "Total",
     "discount": "Discount",
     "purchase": "Purchase",
+    "pay": "Pay",
+    "fundingNotice": "Your balance is short by {{amount}}. The plan will be activated automatically after you top up.",
     "nextWithPrice": "Next · {{amount}}",
     "payAmount": "Pay {{amount}}",
     "step": "Step {{current}} of {{total}}",

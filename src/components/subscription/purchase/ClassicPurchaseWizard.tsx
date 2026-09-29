@@ -1,15 +1,19 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router';
+import { useLocation, useNavigate } from 'react-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { subscriptionApi } from '../../../api/subscription';
 import { useCurrency } from '../../../hooks/useCurrency';
 import { usePromoDiscount } from '../../../hooks/usePromoDiscount';
 import { useCloseOnSuccessNotification } from '../../../store/successNotification';
-import { getErrorMessage, type PurchaseStep } from '../../../utils/subscriptionHelpers';
+import {
+  getErrorMessage,
+  getSavedCartTopUpPath,
+  type PurchaseStep,
+} from '../../../utils/subscriptionHelpers';
 import { CheckIcon } from '../../icons';
-import InsufficientBalancePrompt from '../../InsufficientBalancePrompt';
 import { PurchaseOrderSummary } from './PurchaseOrderSummary';
+import { PurchaseFundingNotice } from './PurchaseFundingNotice';
 import Twemoji from 'react-twemoji';
 import { Skeleton, SkeletonGroup } from '../../ui/skeleton';
 import type {
@@ -51,6 +55,7 @@ export function ClassicPurchaseWizard({
 }: ClassicPurchaseWizardProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
   const { formatAmount, currencySymbol } = useCurrency();
   const { activeDiscount, applyPromoDiscount } = usePromoDiscount();
@@ -180,6 +185,14 @@ export function ClassicPurchaseWizard({
       queryClient.invalidateQueries({ queryKey: ['balance'] });
       queryClient.invalidateQueries({ queryKey: ['subscriptions-list'] });
       navigate('/subscriptions', { replace: true });
+    },
+    onError: (error) => {
+      const topUpPath = getSavedCartTopUpPath(
+        error,
+        preview?.missing_amount_kopeks,
+        `${location.pathname}${location.search}`,
+      );
+      if (topUpPath) navigate(topUpPath);
     },
     onSettled: () => {
       purchaseInFlightRef.current = false;
@@ -546,12 +559,10 @@ export function ClassicPurchaseWizard({
                     discountValue={previewDiscountValue}
                   />
 
-                  {!preview.can_purchase &&
+                  {!purchaseMutation.isError &&
+                    !preview.can_purchase &&
                     (preview.missing_amount_kopeks > 0 ? (
-                      <InsufficientBalancePrompt
-                        missingAmountKopeks={preview.missing_amount_kopeks}
-                        compact
-                      />
+                      <PurchaseFundingNotice missingAmountKopeks={preview.missing_amount_kopeks} />
                     ) : preview.status_message ? (
                       <div className="rounded-lg bg-error-500/10 px-4 py-3 text-center text-sm text-error-400">
                         {preview.status_message}
@@ -589,7 +600,13 @@ export function ClassicPurchaseWizard({
             ) : (
               <button
                 onClick={submitPurchase}
-                disabled={purchaseMutation.isPending || previewLoading || !preview?.can_purchase}
+                disabled={
+                  purchaseMutation.isPending ||
+                  previewLoading ||
+                  !preview ||
+                  (!preview.can_purchase && preview.missing_amount_kopeks <= 0)
+                }
+                aria-busy={purchaseMutation.isPending}
                 className="btn-primary flex-1"
               >
                 {purchaseMutation.isPending ? (
@@ -597,10 +614,8 @@ export function ClassicPurchaseWizard({
                     <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
                     {t('common.loading')}
                   </span>
-                ) : ctaPrice ? (
-                  t('subscription.payAmount', { amount: ctaPrice })
                 ) : (
-                  t('subscription.purchase')
+                  t('subscription.pay')
                 )}
               </button>
             )}

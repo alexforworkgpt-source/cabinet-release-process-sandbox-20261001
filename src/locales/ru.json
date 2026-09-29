@@ -553,6 +553,8 @@
     "total": "К оплате",
     "discount": "Скидка",
     "purchase": "Купить",
+    "pay": "Оплатить",
+    "fundingNotice": "На балансе не хватает {{amount}}. После пополнения тариф оформится автоматически.",
     "nextWithPrice": "Далее · {{amount}}",
     "payAmount": "Оплатить {{amount}}",
     "step": "Шаг {{current}} из {{total}}",

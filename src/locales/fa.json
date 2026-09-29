@@ -482,6 +482,8 @@
     "total": "جمع کل",
     "discount": "تخفیف",
     "purchase": "خرید",
+    "pay": "پرداخت",
+    "fundingNotice": "موجودی شما {{amount}} کم است. پس از افزایش موجودی، طرح به‌طور خودکار فعال می‌شود.",
     "nextWithPrice": "ادامه · {{amount}}",
     "payAmount": "پرداخت {{amount}}",
     "step": "مرحله {{current}} از {{total}}",
