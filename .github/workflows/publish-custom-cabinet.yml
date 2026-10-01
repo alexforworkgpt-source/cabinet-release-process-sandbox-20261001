@@ -104,13 +104,11 @@ jobs:
         run: node scripts/release/publish.mjs create-draft "$RUNNER_TEMP/cabinet-publication"
       - name: Upload metadata without replacing assets
         run: |
-          gh release upload "$CABINET_TAG" --repo "$GITHUB_REPOSITORY" \
-            "$RUNNER_TEMP/cabinet-publication/assets/cabinet-release.json" \
-            "$RUNNER_TEMP/cabinet-publication/assets/cabinet-release.json.sha256"
+          node scripts/release/publish.mjs upload-assets "$RUNNER_TEMP/cabinet-publication"
       - name: Re-download and verify exact uploaded bytes
         run: |
-          gh release download "$CABINET_TAG" --repo "$GITHUB_REPOSITORY" \
-            --dir "$RUNNER_TEMP/cabinet-downloaded"
+          node scripts/release/publish.mjs download-assets \
+            "$RUNNER_TEMP/cabinet-publication" "$RUNNER_TEMP/cabinet-downloaded"
           node scripts/release/publish.mjs verify-download \
             "$RUNNER_TEMP/cabinet-publication" "$RUNNER_TEMP/cabinet-downloaded"
       - name: Publish project Release with latest disabled

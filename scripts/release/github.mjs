@@ -1,3 +1,5 @@
+import { setTimeout as delay } from 'node:timers/promises';
+
 export class GitHubReleases {
   constructor(repository, token, fetcher = fetch) {
     if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repository) || !token) {
@@ -27,15 +29,36 @@ export class GitHubReleases {
     return response.status === 204 ? null : response.json();
   }
 
-  async find(tag) {
+  async matchingReleases(tag) {
+    // The list may briefly omit a new draft. Never use tag resolution to
+    // decide which draft receives uploaded assets.
+    const matches = [];
     for (let page = 1; ; page++) {
       const releases = await this.request(`?per_page=100&page=${page}`);
       if (!Array.isArray(releases) || releases.some((item) => typeof item?.tag_name !== 'string')) {
         throw new Error('GitHub release list is invalid');
       }
-      const found = releases.find((item) => item.tag_name === tag);
-      if (found) return found;
-      if (releases.length < 100) return null;
+      matches.push(...releases.filter((item) => item.tag_name === tag));
+      if (releases.length < 100) return matches;
+    }
+  }
+
+  async find(tag) {
+    return (await this.matchingReleases(tag))[0] ?? null;
+  }
+
+  async uniqueOwnedDraft(receipt, run) {
+    for (let attempt = 0; attempt < 6; attempt++) {
+      const release = await this.ownedDraft(receipt, run);
+      if (!release) throw new Error('Only the owned draft may be published');
+      const matches = await this.matchingReleases(receipt.tag);
+      if (matches.length === 1 && matches[0].id === receipt.id) return release;
+      if (matches.length !== 0 || attempt === 5) {
+        throw new Error(
+          'Publication requires a unique visible owned draft; preserve other Releases',
+        );
+      }
+      await delay(1_000);
     }
   }
 
@@ -94,8 +117,7 @@ export class GitHubReleases {
   }
 
   async publish(receipt, run, prerelease) {
-    if (!(await this.ownedDraft(receipt, run)))
-      throw new Error('Only the owned draft may be published');
+    await this.uniqueOwnedDraft(receipt, run);
     if (typeof prerelease !== 'boolean') throw new Error('Explicit prerelease policy is required');
     await this.request(`/${receipt.id}`, 'PATCH', {
       draft: false,
