@@ -1,6 +1,28 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
+test('Publication waits for own draft visibility without creating another draft', async () => {
+  const { GitHubReleases } = await import('./github.mjs');
+  const receipt = {
+    repository: 'OWNER/custom-cabinet',
+    tag: 'cabinet-v2026.10.01',
+    id: 12,
+    marker: '<!-- publication-run: 123/1 -->',
+  };
+  const owned = { id: 12, tag_name: receipt.tag, draft: true, body: receipt.marker };
+  const methods = [];
+  let lists = 0;
+  const api = new GitHubReleases(receipt.repository, 'fictional-token', async (url, options) => {
+    methods.push(options.method);
+    if (options.method === 'PATCH') return Response.json({});
+    return Response.json(
+      new URL(url).pathname.endsWith('/12') ? owned : ++lists === 1 ? [] : [owned],
+    );
+  });
+  await api.publish(receipt, '123/1', true);
+  assert.deepEqual(methods, ['GET', 'GET', 'GET', 'GET', 'PATCH']);
+});
+
 test('Duplicate or invisible owned draft cannot be published', async () => {
   const { GitHubReleases } = await import('./github.mjs');
   const receipt = {

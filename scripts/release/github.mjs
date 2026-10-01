@@ -1,3 +1,5 @@
+import { setTimeout as delay } from 'node:timers/promises';
+
 export class GitHubReleases {
   constructor(repository, token, fetcher = fetch) {
     if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repository) || !token) {
@@ -46,13 +48,18 @@ export class GitHubReleases {
   }
 
   async uniqueOwnedDraft(receipt, run) {
-    const release = await this.ownedDraft(receipt, run);
-    if (!release) throw new Error('Only the owned draft may be published');
-    const matches = await this.matchingReleases(receipt.tag);
-    if (matches.length !== 1 || matches[0].id !== receipt.id) {
-      throw new Error('Publication requires a unique visible owned draft; preserve other Releases');
+    for (let attempt = 0; attempt < 6; attempt++) {
+      const release = await this.ownedDraft(receipt, run);
+      if (!release) throw new Error('Only the owned draft may be published');
+      const matches = await this.matchingReleases(receipt.tag);
+      if (matches.length === 1 && matches[0].id === receipt.id) return release;
+      if (matches.length !== 0 || attempt === 5) {
+        throw new Error(
+          'Publication requires a unique visible owned draft; preserve other Releases',
+        );
+      }
+      await delay(1_000);
     }
-    return release;
   }
 
   async createDraft(tag, notes, run, sha) {
