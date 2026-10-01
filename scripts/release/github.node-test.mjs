@@ -1,6 +1,27 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
+test('Duplicate or invisible owned draft cannot be published', async () => {
+  const { GitHubReleases } = await import('./github.mjs');
+  const receipt = {
+    repository: 'OWNER/custom-cabinet',
+    tag: 'cabinet-v2026.10.01',
+    id: 12,
+    marker: '<!-- publication-run: 123/1 -->',
+  };
+  const owned = { id: 12, tag_name: receipt.tag, draft: true, body: receipt.marker };
+  const foreign = { ...owned, id: 13, body: 'another publication' };
+  for (const visible of [[], [foreign], [owned, foreign]]) {
+    const methods = [];
+    const api = new GitHubReleases(receipt.repository, 'fictional-token', async (url, options) => {
+      methods.push(options.method);
+      return Response.json(new URL(url).pathname.endsWith('/12') ? owned : visible);
+    });
+    await assert.rejects(api.publish(receipt, '123/1', true), /unique visible owned draft/);
+    assert.ok(methods.every((method) => method === 'GET'));
+  }
+});
+
 test('API failures are not treated as an absent Cabinet Release', async () => {
   const { GitHubReleases } = await import('./github.mjs');
   for (const status of [401, 403, 404, 429, 500]) {
@@ -51,15 +72,16 @@ test('Only the owned draft can be deleted or published; publication never select
       id: 12,
       marker: '<!-- publication-run: 123/1 -->',
     };
-    const api = new GitHubReleases(receipt.repository, 'fictional-token', async (_url, options) => {
+    const api = new GitHubReleases(receipt.repository, 'fictional-token', async (url, options) => {
       requests.push(options);
       if (options.method === 'DELETE') return new Response(null, { status: 204 });
-      return Response.json({
+      const release = {
         id: 12,
         tag_name: receipt.tag,
         draft,
         body: foreign ? 'another publication' : receipt.marker,
-      });
+      };
+      return Response.json(new URL(url).pathname.endsWith('/releases') ? [release] : release);
     });
     assert.equal(await api.cleanup(receipt, '123/1'), draft && !foreign);
     if (draft && !foreign) {

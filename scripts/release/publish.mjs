@@ -6,6 +6,7 @@ import { prepareMetadata } from './metadata.mjs';
 import { releaseNotes } from './policy.mjs';
 import { verifyRemoteTag } from './remote.mjs';
 import { verifySource } from './source.mjs';
+import { uploadAssets, downloadAssets } from './transfer.mjs';
 
 const [command, directory, downloaded] = process.argv.slice(2);
 const commands = [
@@ -16,6 +17,8 @@ const commands = [
   'publish-draft',
   'cleanup-draft',
   'verify-download',
+  'upload-assets',
+  'download-assets',
 ];
 if (command === '--help') {
   console.log(`Commands: ${commands.join(', ')}. Outputs must be inside RUNNER_TEMP.`);
@@ -80,7 +83,17 @@ if (command === '--help') {
           if (receipt.tag !== env.CABINET_TAG)
             throw new Error('Receipt tag does not match selected Cabinet');
           if (command === 'cleanup-draft') await api.cleanup(receipt, run);
-          else {
+          else if (command === 'upload-assets')
+            await uploadAssets(api, receipt, run, join(output, 'assets'));
+          else if (command === 'download-assets') {
+            if (!downloaded) throw new Error('Downloaded asset directory is required');
+            const target = resolve(downloaded);
+            const child = relative(temporary, target);
+            if (!child || child.startsWith('..') || isAbsolute(child)) {
+              throw new Error('Downloaded assets must be inside RUNNER_TEMP');
+            }
+            await downloadAssets(api, receipt, run, target);
+          } else {
             if (!['true', 'false'].includes(env.PRERELEASE))
               throw new Error('Explicit prerelease policy is required');
             verifyRemoteTag(root, env.CABINET_TAG, env.CABINET_SHA);
