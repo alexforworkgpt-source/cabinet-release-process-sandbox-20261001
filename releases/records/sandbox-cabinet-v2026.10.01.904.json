@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "cabinet": {
+    "tag": "cabinet-v2026.10.01.904",
+    "sha": "3213c89920cf4a0712fcc2a9443eae13b62ccbc7",
+    "tree_sha": "08652ee2414e4d0fb95a27d993220425ca1a43eb"
+  },
+  "upstream": {
+    "repository": "https://github.com/BEDOLAGA-DEV/bedolaga-cabinet.git",
+    "tag": "v1.79.0",
+    "sha": "821c7b71823573a756de00418acb25118ede1c9c"
+  },
+  "bot": {
+    "repository": "https://github.com/BEDOLAGA-DEV/remnawave-bedolaga-telegram-bot.git",
+    "sha": "877690a7039d1326b2c00eda3e297879b80c0678",
+    "backend_contract": "1",
+    "compatibility_evidence": "https://github.com/alexforworkgpt-source/cabinet-release-process-sandbox-20261001/blob/f04859116f60cbe332916943c20ebbc8177077b0/releases/evidence/sandbox-cabinet-3213c89-compatibility-20261002.md"
+  },
+  "changes": [
+    "SANDBOX ONLY: verify independent Custom Cabinet metadata publication; no production recommendation.",
+    "Publication uses receipt Release ID and asset IDs; bounded draft visibility is fail-closed.",
+    "Runtime application source unchanged from the selectively committed sandbox baseline; owner dirty application edits excluded.",
+    "One expired grace test fixture now uses tomorrow relative to Date.now(); runtime logic/assertions unchanged."
+  ],
+  "limitations": [
+    {
+      "id": "classic-auto-purchase",
+      "status": "OPEN",
+      "summary": "Known upstream Bot top-up dispatcher limitation remains open; sandbox process fixture acceptance does not fix it."
+    },
+    {
+      "id": "live-user-flows",
+      "status": "BLOCKED",
+      "summary": "Physical Telegram, authenticated staging, payments, renewal, concurrent callbacks and initial panel sync were not verified."
+    }
+  ],
+  "frontend_policy": {
+    "bscheker": "excluded",
+    "simple_mode": "excluded"
+  },
+  "owner_approved": true
+}
